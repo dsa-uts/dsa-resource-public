@@ -9,7 +9,12 @@ sandbox-images:
       image: ghcr.io/dsa-uts/dsa-resource-public-sandbox
       platforms:
       - linux/amd64
-    lock: null
+    lock:
+      tag: 693d9ddf2c0d90c34f61db1299a4b5f73a58f241-34750857343-1-0
+      digest: sha256:51047a5e073d15808fd0081df990fbf4c9d0b81eba379641c5cd12fd7fbb5569
+      input-hash: sha256:1c34fde1e0740eeae2bb8dce390202b1522a68d02196db81002559732ac67d85
+      source-ref: 693d9ddf2c0d90c34f61db1299a4b5f73a58f241
+      actions-run-id: '34750857343'
   runner:
     build:
       context: sandbox-runner
@@ -17,4 +22,9 @@ sandbox-images:
       image: ghcr.io/dsa-uts/dsa-resource-public-sandbox
       platforms:
       - linux/amd64
-    lock: null
+    lock:
+      tag: 693d9ddf2c0d90c34f61db1299a4b5f73a58f241-34750857343-1-1
+      digest: sha256:3555415f86c142daf5c8b100ededadf1894329d50f945c94ab589eaa6666d910
+      input-hash: sha256:ccf10e31ed5856add96e1507fdb53ec4bd56e906e028bc25f21d2d22a5e7ba62
+      source-ref: 693d9ddf2c0d90c34f61db1299a4b5f73a58f241
+      actions-run-id: '34750857343'
