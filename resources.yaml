@@ -1,6 +1,9 @@
 resources:
 - id: ex1
   path: ex1/resource.yaml
+  versions:
+  - version: 1
+    commit: 01131fb0b0ea86ddbceb304a81a10b2a738c903a
 sandbox-images:
   default:
     build:
