@@ -2,7 +2,7 @@
 
 manifest・イメージ管理・検証・Backendへの取り込みを定めます。課題定義と実行規則は [Resource仕様](resource.md) を参照してください。
 
-このリポジトリは [JSON Schema](../schemas/) と [scripts/resources.py](../scripts/resources.py) による検証・展開、および [scripts/build_images.py](../scripts/build_images.py) によるイメージ公開を実装します。Backendのインポート・Version管理とJudgeの実行処理は別実装です。
+このリポジトリは [JSON Schema](../schemas/) と [scripts/resources.py](../scripts/resources.py) による検証・展開、[scripts/build_images.py](../scripts/build_images.py) によるイメージ公開、および [scripts/publish_versions.py](../scripts/publish_versions.py) によるResource Version登録を実装します。Backendのインポート・利用Versionの選択とJudgeの実行処理は別実装です。
 
 ## Manifest
 
@@ -12,6 +12,7 @@ rootの [resources.yaml](../resources.yaml) にResource一覧と共通Sandbox Im
 resources:
   - id: ex1
     path: ex1/resource.yaml
+    versions: []
 sandbox-images:
   default:
     build:
@@ -23,6 +24,29 @@ sandbox-images:
 ```
 
 `resources` の `id` と `path` はそれぞれ一意で、`path` は専用directoryの `resource.yaml` を指します。空配列は全Projectのarchiveを表すため許可します。
+
+## Resource Version
+
+各 `resource.yaml` の `resource.version` に正の整数を明示します。新規Resourceは例えば `1` から始めます。公開する変更では登録済みの最大値より大きい値を指定し、欠番は許容します。同じ値なら登録はno-op、小さい値は検証エラーです。複数のコミットをまとめ、公開の準備ができたところでversionを上げられます。
+
+CIは内容の変更やversionの上げ忘れを検出しません。説明文・Preset・テスト・実行設定・共通イメージの変更を公開する場合、対象Resourceのversionを明示的に上げます。共通イメージが更新されても、versionを上げないResourceの公開済み版は以前のイメージを使い続けます。
+
+root manifestの各Resourceに、botが次の履歴を昇順で追記します。`versions` の省略と空配列は未登録を表します。
+
+```yaml
+resources:
+  - id: ex1
+    path: ex1/resource.yaml
+    versions:
+      - version: 1
+        commit: "1111111111111111111111111111111111111111"
+      - version: 3
+        commit: "3333333333333333333333333333333333333333"
+```
+
+`commit` はそのResourceの素材と全イメージlockがready検証に通ったコミットの40桁SHAです。履歴を書き込むbotコミット自身のSHAではありません。登録済みの `version → commit` は固定し、同じversionで後から修正しても参照先は変えません。修正を公開するには新しいversionを指定します。
+
+履歴はbotの管理対象です。PR・main更新のCIは基準コミットと比較して、残っているResourceの履歴の手編集・追記・削除を拒否します。Resource自体の削除は従来どおり許容し、その履歴は過去のGitコミットに残ります。
 
 ### Path の共通規則
 
@@ -76,6 +100,10 @@ lockのハッシュは入力との対応付けであり、信頼できない作�
 
 公開Jobはmain専用・直列で、開始時の最新mainをcheckoutし再検証します。ビルド中にmainが進んだ場合は結果をコミットせず失敗とし、後続Runで最新mainを処理します。push直前の競合も通常のfast-forward pushで拒否します。
 
+イメージlockのコミット・pushとready検証の後、同じ公開Jobで `scripts/publish_versions.py` を実行します。未登録のversionだけ、その時点のHEADを指す履歴として追記し、別のbotコミットでpushします。イメージに変更がなければlockコミットを作らず、現在のHEADを使います。初回登録も自動です。
+
+登録処理はcleanなcheckoutを要求し、履歴の書き込み前に最新mainとの一致を確認します。pushまでの競合はfast-forward pushで拒否し、生成履歴をrebaseしません。後続Runは最新mainから処理し直します。登録済みversionは再実行しても追記しません。手動のイメージ再ビルドだけではResourceのversionを変更しません。
+
 生成PRやBackend API呼び出しは行いません。生成コミットは `GITHUB_TOKEN` でpushし、新たなActions Runを起動しません。生成後のready検証は同じRun内で実行します。
 
 必要な権限は検証に `contents: read`、公開に `contents: write` と `packages: write` です。mainのルールセットがbotの直接pushを許可し、GHCR packageへのActions書き込み権限が必要です。DHI認証やBackend用Secretは使いません。
@@ -103,23 +131,25 @@ uv run --locked scripts/resources.py validate --ready
 uv run --locked scripts/resources.py expand > /tmp/resolved-resources.yaml
 ```
 
-`--ready` と通常の `expand` は、root manifestの全イメージ（Job未参照分も含む）に現在の入力ハッシュと一致するlockを要求します。未ビルド、失敗したbuild、digest未反映、stale lockのコミットはインポートできません。JSON Schema単独の検証ではこの条件を保証できません。
+`--ready` と通常の `expand` は、root manifestの全イメージ（Job未参照分も含む）に現在の入力ハッシュと一致するlockを要求します。未ビルド、失敗したbuild、digest未反映、stale lockのコミットは公開版の取得元にできません。readyは素材とイメージの条件であり、version履歴への登録完了を意味しません。JSON Schema単独の検証ではこれらの条件を保証できません。
+
+`validate --history-base <40桁SHA>` は、そのコミットの履歴と比較して手編集を検出します。通常のローカル検証は現在のファイルだけを検証します。
 
 `expand` は次の規則でYAMLを標準出力に出します。
 
-- Resource一覧とWorkflow・Job構造を維持し、各Jobの `resolved-image` に `image`、`tag`、`digest` を追加する。imageのbuild・lock定義は含めない。
+- Resource一覧と `resource.version`・Workflow・Job構造を維持し、各Jobの `resolved-image` に `image`、`tag`、`digest` を追加する。imageのbuild・lock定義とversion履歴は含めない。
 - map keyは辞書順、配列は定義順とし、時刻を含めない。
 - `run` は元の文字列を保持し、argvへの変換や実行をしない。イメージのpullもしない。
 - 明示された `compile`、Stepの `timeout`、Jobの `limits.step-timeout` を保持し、省略値の補完やJob timeoutの計算はしない。
 
-`--allow-unbuilt` は未確定・古いlockを許容するレビュー用の展開です。生成YAML自体は元Resource用Schemaの入力ではありません。
+`--allow-unbuilt` は未確定・古いlockを許容するレビュー用の展開です。生成YAML自体は元Resource用Schemaの入力ではありません。`expand` はcheckoutされた内容を展開し、登録済みversionのSHAへ自動的に移動しません。
 
 ## 手動インポート
 
 以下はBackend側が実装する契約です。
 
-1. Adminがsource repositoryとmain履歴上のcommit SHAを指定します。
-2. Backendがそのコミットの全manifest・Resource・素材とイメージlockを取得し、Schema＋補助検証相当のready検証を行います。失敗時は全体を拒否します。
-3. 各Resourceの実効内容（Resource YAMLのWorkflow/Job/表示名等（image build/lock宣言は除く）、参照するdescription/Preset/stdin/expected bytes、解決後のimage名＋tag＋digest）で変更判定します。map順や監査用source-ref/Actions Run IDだけの違い、未参照イメージ変更は新Versionの理由にしません。共通digest変更は参照する全Resourceの変更です。
-4. 変更Resourceのみimmutableな新Versionを作り、そのProjectのQueued Rerunをenqueueします。manifestの追加・削除でactive集合を更新します。全体を原子的に適用し、同一内容の再インポートはno-opです。
-5. repository、指定commit、実行Admin、build source-ref、Actions Run ID、image tag/digestを監査記録します。取り込み完了までは既存latestを維持します。
+1. Adminが手動でsource repositoryのmain更新を取得します。取得したmanifestのコミットを固定し、各Resourceの `versions` の最後の登録を最新候補とします。履歴が空のResourceには公開版がありません。現在の `resource.yaml` のversion値だけで未登録版を候補にしません。
+2. 未取得の最新版について、記録された `commit` からmanifestを取得し、同じResource IDの当時のpathを解決して定義・素材・イメージlockを読みます。現在のmainのファイルを混ぜてはいけません。そのSHAがmain履歴上にあること、ID・versionが登録と一致すること、ready検証相当の条件を確認します。記録SHAのmanifestには、その版の履歴がまだなくても正常です。
+3. repository・Resource ID・versionで取り込み済みかを判定し、同じ版の再取得はno-opとします。同じ識別子に異なるSHAが来た場合は上書きせずエラーにします。取得間隔の途中に公開された版まで取り込む必要はありません。
+4. 取り込み済みの旧版を保持し、新版を選択候補に追加します。取得だけでは利用Versionを切り替えず、Adminが選択してupgradeします。Resourceがmanifestから削除されても、取得済みの版は保持します。
+5. repository、一覧を取得したコミット、Resourceごとの登録SHA・version、実行Admin、build source-ref、Actions Run ID、image tag/digestを監査記録します。

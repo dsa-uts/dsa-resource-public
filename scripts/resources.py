@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import re
 import stat
+import subprocess
 
 import jsonschema
 import yaml
@@ -115,6 +116,17 @@ def image_entries(root, manifest):
         yield 'shared/' + key, root, image
 
 
+def check_history(root, manifest, base):
+    """Authors may edit resources, but only the publisher may add version records."""
+    require(re.fullmatch(r'[a-f0-9]{40}', base) is not None, 'history base must be a full commit SHA')
+    previous = yaml.load(subprocess.check_output(
+        ['git', 'show', f'{base}:resources.yaml'], cwd=root, text=True), Loader=UniqueLoader)
+    histories = {entry['id']: entry.get('versions', []) for entry in previous['resources']}
+    for entry in manifest['resources']:
+        require(entry.get('versions', []) == histories.get(entry['id'], []),
+                f'{entry["id"]}: versions are bot-managed; do not edit registered history')
+
+
 def validate(root=REPO, ready=False):
     root = Path(root).resolve()
     manifest = read(file_path(root, 'resources.yaml'))
@@ -129,6 +141,14 @@ def validate(root=REPO, ready=False):
         data = read(source)
         schema_check(data, 'resource')
         require(data['resource']['id'] == entry['id'], 'Resource ID mismatch')
+        version = data['resource']['version']
+        require(type(version) is int, 'Resource version must be an integer')
+        latest = 0
+        for record in entry.get('versions', []):
+            require(type(record['version']) is int and record['version'] > latest,
+                    f'{entry["id"]}: registered versions must be strictly increasing integers')
+            latest = record['version']
+        require(version >= latest, f'{entry["id"]}: version must not decrease below registered version {latest}')
         images = manifest['sandbox-images']
         for workflow in data['workflows'].values():
             if 'description-path' in workflow:
@@ -205,14 +225,17 @@ def main():
     parser.add_argument('--root', type=Path, default=REPO)
     parser.add_argument('--ready', action='store_true', help='require up-to-date image locks for import')
     parser.add_argument('--allow-unbuilt', action='store_true', help='expand draft configuration for review only')
+    parser.add_argument('--history-base', help='reject manual history changes relative to this full commit SHA')
     args = parser.parse_args()
     try:
         if args.command == 'expand':
             print(expand(args.root, ready=not args.allow_unbuilt), end='')
         else:
-            validate(args.root, ready=args.ready)
+            manifest, _ = validate(args.root, ready=args.ready)
+            if args.history_base:
+                check_history(args.root, manifest, args.history_base)
             print('Resource validation passed' + (' (import-ready)' if args.ready else ' (source only)'))
-    except (Invalid, OSError, yaml.YAMLError) as error:
+    except (Invalid, OSError, yaml.YAMLError, subprocess.CalledProcessError) as error:
         parser.exit(1, f'{error}\n')
 
 
