@@ -1,0 +1,425 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resource": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "workflows": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description-path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+          },
+          "presets": {
+            "type": "object",
+            "properties": {
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                    }
+                  },
+                  "required": [
+                    "source",
+                    "path"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "files"
+            ],
+            "additionalProperties": false
+          },
+          "jobs": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*$"
+            },
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "visibility": {
+                  "enum": [
+                    "public",
+                    "private"
+                  ]
+                },
+                "depends": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z][a-z0-9-]*$"
+                  },
+                  "uniqueItems": true
+                },
+                "sandbox-image": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]*$"
+                },
+                "working-directory": {
+                  "type": "string",
+                  "pattern": "^/workspace(?:/[a-zA-Z0-9_.-]+)*$"
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": {
+                      "const": 1
+                    },
+                    "memory": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*(KiB|MiB|GiB)$"
+                    },
+                    "pids": {
+                      "type": "integer",
+                      "minimum": 1
+                    },
+                    "step-timeout": {
+                      "$ref": "#/$defs/duration"
+                    },
+                    "stdout-size": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*(KiB|MiB|GiB)$"
+                    },
+                    "stderr-size": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*(KiB|MiB|GiB)$"
+                    },
+                    "workspace-size": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*(KiB|MiB|GiB)$"
+                    },
+                    "artifact-size": {
+                      "type": "string",
+                      "pattern": "^[1-9][0-9]*(KiB|MiB|GiB)$"
+                    }
+                  },
+                  "required": [
+                    "memory",
+                    "step-timeout"
+                  ],
+                  "additionalProperties": false
+                },
+                "artifacts": {
+                  "type": "object",
+                  "properties": {
+                    "inputs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "from-job": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9-]*$"
+                          },
+                          "name": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9-]*$"
+                          },
+                          "path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                          }
+                        },
+                        "required": [
+                          "from-job",
+                          "name",
+                          "path"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "outputs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9-]*$"
+                          },
+                          "path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                          },
+                          "visibility": {
+                            "enum": [
+                              "public",
+                              "private"
+                            ]
+                          },
+                          "content-type": {
+                            "enum": [
+                              "image/png",
+                              "image/jpeg",
+                              "text/plain",
+                              "application/json"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "path"
+                        ],
+                        "additionalProperties": false,
+                        "allOf": [
+                          {
+                            "if": {
+                              "properties": {
+                                "visibility": {
+                                  "const": "public"
+                                }
+                              },
+                              "required": [
+                                "visibility"
+                              ]
+                            },
+                            "then": {
+                              "required": [
+                                "content-type"
+                              ]
+                            },
+                            "else": {
+                              "not": {
+                                "required": [
+                                  "content-type"
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required": [],
+                  "additionalProperties": false
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "compile": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Whether a failed step is recorded as CE (Compilation Error)."
+                      },
+                      "run": {
+                        "type": "string",
+                        "minLength": 1,
+                        "allOf": [
+                          {
+                            "pattern": "\\S"
+                          },
+                          {
+                            "not": {
+                              "pattern": "\\u0000"
+                            }
+                          }
+                        ]
+                      },
+                      "stdin": {
+                        "type": "object",
+                        "properties": {
+                          "value": {
+                            "type": "string"
+                          },
+                          "path": {
+                            "type": "string",
+                            "minLength": 1,
+                            "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false,
+                        "oneOf": [
+                          {
+                            "required": [
+                              "value"
+                            ]
+                          },
+                          {
+                            "required": [
+                              "path"
+                            ]
+                          }
+                        ]
+                      },
+                      "timeout": {
+                        "$ref": "#/$defs/duration"
+                      },
+                      "expected": {
+                        "type": "object",
+                        "properties": {
+                          "exit-code": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 255
+                          },
+                          "stdout": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                              },
+                              "match": {
+                                "enum": [
+                                  "exact",
+                                  "easy",
+                                  "sorted"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "match"
+                            ],
+                            "additionalProperties": false,
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "value"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "path"
+                                ]
+                              }
+                            ]
+                          },
+                          "stderr": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              },
+                              "path": {
+                                "type": "string",
+                                "minLength": 1,
+                                "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                              },
+                              "match": {
+                                "enum": [
+                                  "exact",
+                                  "easy",
+                                  "sorted"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "match"
+                            ],
+                            "additionalProperties": false,
+                            "oneOf": [
+                              {
+                                "required": [
+                                  "value"
+                                ]
+                              },
+                              {
+                                "required": [
+                                  "path"
+                                ]
+                              }
+                            ]
+                          }
+                        },
+                        "required": [],
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "run"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "sandbox-image",
+                "limits",
+                "steps"
+              ],
+              "additionalProperties": false
+            },
+            "minProperties": 1
+          }
+        },
+        "required": [
+          "jobs"
+        ],
+        "additionalProperties": false
+      },
+      "minProperties": 1
+    }
+  },
+  "required": [
+    "resource",
+    "workflows"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "duration": {
+      "type": "string",
+      "pattern": "^[1-9][0-9]*(ms|s)(?![\\s\\S])",
+      "description": "Positive integer duration with an s (seconds) or ms (milliseconds) suffix."
+    }
+  }
+}

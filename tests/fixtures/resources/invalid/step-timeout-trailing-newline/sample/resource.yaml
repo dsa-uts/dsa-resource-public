@@ -1,0 +1,15 @@
+resource:
+  id: sample
+  name: Test resource
+workflows:
+  main:
+    jobs:
+      check:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: '2s
+
+            '
+        steps:
+        - run: 'true'

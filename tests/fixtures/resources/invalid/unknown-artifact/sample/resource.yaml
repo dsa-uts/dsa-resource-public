@@ -1,0 +1,31 @@
+resource:
+  id: sample
+  name: Test resource
+workflows:
+  main:
+    jobs:
+      build:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: 'true'
+        artifacts:
+          outputs:
+          - name: program
+            path: program
+      check:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: 'true'
+        depends:
+        - build
+        artifacts:
+          inputs:
+          - from-job: build
+            name: absent
+            path: program

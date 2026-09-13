@@ -1,0 +1,248 @@
+resource:
+  id: ex1
+  name: C言語によるプログラミングの復習
+workflows:
+  ex1-1:
+    name: 基本課題
+    description-path: ex1-1/description.md
+    presets:
+      files:
+      - source: ex1-1/test_link.c
+        path: ex1-1/test_link.c
+    jobs:
+      build:
+        visibility: public
+        sandbox-image: default
+        limits:
+          cpu: 1
+          memory: 512MiB
+          pids: 128
+          step-timeout: "1s"
+          stdout-size: 1MiB
+          stderr-size: 1MiB
+          workspace-size: 256MiB
+          artifact-size: 1MiB
+        artifacts:
+          outputs:
+          - name: program
+            path: gcd_euclid
+        steps:
+        - name: main_euclid.cのコンパイル
+          compile: true
+          run: make gcd_euclid
+          expected:
+            exit-code: 0
+        - name: gcd_euclidが定義されているか
+          compile: true
+          run: gcc -o test_link gcd_euclid.c /preset/ex1-1/test_link.c
+          expected:
+            exit-code: 0
+      public:
+        visibility: public
+        depends:
+        - build
+        sandbox-image: runner
+        limits:
+          cpu: 1
+          memory: 512MiB
+          pids: 128
+          step-timeout: "1s"
+          stdout-size: 1MiB
+          stderr-size: 1MiB
+          workspace-size: 256MiB
+          artifact-size: 1MiB
+        artifacts:
+          inputs:
+          - from-job: build
+            name: program
+            path: gcd_euclid
+        steps:
+        - name: 15, 30のGCD
+          run: ./gcd_euclid 15 30
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-1/testcases/easy1.out
+            stderr:
+              match: easy
+              path: ex1-1/testcases/easy1.err
+        - name: 引数が2つでない場合のエラー出力
+          run: ./gcd_euclid 127 41 231
+          expected:
+            exit-code: 1
+            stdout:
+              match: easy
+              path: ex1-1/testcases/exception1.out
+      private:
+        visibility: private
+        depends:
+        - build
+        sandbox-image: runner
+        limits:
+          cpu: 1
+          memory: 512MiB
+          pids: 128
+          step-timeout: "1s"
+          stdout-size: 1MiB
+          stderr-size: 1MiB
+          workspace-size: 256MiB
+          artifact-size: 1MiB
+        artifacts:
+          inputs:
+          - from-job: build
+            name: program
+            path: gcd_euclid
+        steps:
+        - name: 18, 24のGCD
+          run: ./gcd_euclid 18 24
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-1/testcases/easy2.out
+            stderr:
+              match: easy
+              path: ex1-1/testcases/easy2.err
+        - name: 649, 826のGCD
+          run: ./gcd_euclid 649 826
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-1/testcases/easy3.out
+            stderr:
+              match: easy
+              path: ex1-1/testcases/easy3.err
+        - name: 55, 165のGCD
+          run: ./gcd_euclid 55 165
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-1/testcases/easy4.out
+            stderr:
+              match: easy
+              path: ex1-1/testcases/easy4.err
+  ex1-2:
+    name: 発展課題
+    description-path: ex1-2/description.md
+    presets:
+      files:
+      - source: ex1-2/test_link.c
+        path: ex1-2/test_link.c
+    jobs:
+      build:
+        visibility: public
+        sandbox-image: default
+        limits:
+          cpu: 1
+          memory: 512MiB
+          pids: 128
+          step-timeout: "1s"
+          stdout-size: 1MiB
+          stderr-size: 1MiB
+          workspace-size: 256MiB
+          artifact-size: 1MiB
+        artifacts:
+          outputs:
+          - name: program
+            path: gcd_recursive
+        steps:
+        - name: main_recursive.cのコンパイル
+          compile: true
+          run: make gcd_recursive
+          expected:
+            exit-code: 0
+        - name: gcd_recursiveが定義されているか
+          compile: true
+          run: gcc -o test_link gcd_recursive.c /preset/ex1-2/test_link.c
+          expected:
+            exit-code: 0
+      public:
+        visibility: public
+        depends:
+        - build
+        sandbox-image: runner
+        limits:
+          cpu: 1
+          memory: 512MiB
+          pids: 128
+          step-timeout: "1s"
+          stdout-size: 1MiB
+          stderr-size: 1MiB
+          workspace-size: 256MiB
+          artifact-size: 1MiB
+        artifacts:
+          inputs:
+          - from-job: build
+            name: program
+            path: gcd_recursive
+        steps:
+        - name: 15, 30のGCD
+          run: ./gcd_recursive 15 30
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-2/testcases/easy1.out
+            stderr:
+              match: easy
+              path: ex1-2/testcases/easy1.err
+        - name: 引数が2つでない場合のエラー出力
+          run: ./gcd_recursive 127 41 231
+          expected:
+            exit-code: 1
+            stdout:
+              match: easy
+              path: ex1-2/testcases/exception.out
+      private:
+        visibility: private
+        depends:
+        - build
+        sandbox-image: runner
+        limits:
+          cpu: 1
+          memory: 512MiB
+          pids: 128
+          step-timeout: "1s"
+          stdout-size: 1MiB
+          stderr-size: 1MiB
+          workspace-size: 256MiB
+          artifact-size: 1MiB
+        artifacts:
+          inputs:
+          - from-job: build
+            name: program
+            path: gcd_recursive
+        steps:
+        - name: 18, 24のGCD
+          run: ./gcd_recursive 18 24
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-2/testcases/easy2.out
+            stderr:
+              match: easy
+              path: ex1-2/testcases/easy2.err
+        - name: 649, 826のGCD
+          run: ./gcd_recursive 649 826
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-2/testcases/easy3.out
+            stderr:
+              match: easy
+              path: ex1-2/testcases/easy3.err
+        - name: 55, 165のGCD
+          run: ./gcd_recursive 55 165
+          expected:
+            exit-code: 0
+            stdout:
+              match: easy
+              path: ex1-2/testcases/easy4.out
+            stderr:
+              match: easy
+              path: ex1-2/testcases/easy4.err

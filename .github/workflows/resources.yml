@@ -1,0 +1,93 @@
+name: Resources
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rebuild:
+        description: Rebuild all images using the pinned base
+        type: boolean
+        default: true
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --python 3.12
+      - run: uv run --locked scripts/resources.py validate
+      - run: uv run --locked python -m unittest discover -s tests -v
+  images:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    concurrency:
+      group: resource-image-publish-main
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --python 3.12
+      # main may have advanced while this job waited for concurrency.
+      - run: uv run --locked scripts/resources.py validate
+      - run: uv run --locked python -m unittest discover -s tests -v
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build changed inputs and commit locks
+        env:
+          FORCE_REBUILD: ${{ github.event_name == 'workflow_dispatch' && inputs.rebuild }}
+        run: |
+          args=()
+          if [[ "$FORCE_REBUILD" == "true" ]]; then args+=(--force); fi
+          uv run --locked scripts/build_images.py "${args[@]}"
+      - run: uv run --locked scripts/resources.py validate --ready
+  public-images:
+    needs: images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --locked --python 3.12
+      - run: uv run --locked scripts/resources.py validate --ready
+      - name: Pull locked images without credentials
+        shell: bash
+        run: |
+          uv run --locked python - <<'PY' > "$RUNNER_TEMP/public-images.txt"
+          import yaml
+          from pathlib import Path
+          manifest = yaml.safe_load(Path('resources.yaml').read_text())
+          for image in manifest['sandbox-images'].values():
+              for platform in image['build']['platforms']:
+                  print(platform, image['build']['image'] + '@' + image['lock']['digest'])
+          PY
+          anonymous_config="$(mktemp -d)"
+          trap 'rm -rf "$anonymous_config"' EXIT
+          while read -r platform image; do
+            docker --config "$anonymous_config" pull --platform "$platform" "$image"
+          done < "$RUNNER_TEMP/public-images.txt"

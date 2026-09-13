@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+          }
+        },
+        "required": [
+          "id",
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "sandbox-images": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "build": {
+            "type": "object",
+            "properties": {
+              "context": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+                  },
+                  {
+                    "const": "."
+                  }
+                ]
+              },
+              "dockerfile": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+              },
+              "image": {
+                "type": "string",
+                "pattern": "^ghcr.io/[a-z0-9._/-]+$"
+              },
+              "platforms": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "linux/amd64",
+                    "linux/arm64"
+                  ]
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "context",
+              "dockerfile",
+              "image",
+              "platforms"
+            ],
+            "additionalProperties": false
+          },
+          "lock": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "tag": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$"
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "input-hash": {
+                    "type": "string",
+                    "pattern": "^sha256:[a-f0-9]{64}$"
+                  },
+                  "source-ref": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{40}$"
+                  },
+                  "actions-run-id": {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  }
+                },
+                "required": [
+                  "tag",
+                  "digest",
+                  "input-hash",
+                  "source-ref",
+                  "actions-run-id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "build",
+          "lock"
+        ],
+        "additionalProperties": false
+      },
+      "minProperties": 0
+    }
+  },
+  "required": [
+    "resources",
+    "sandbox-images"
+  ],
+  "additionalProperties": false
+}

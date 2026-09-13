@@ -1,0 +1,24 @@
+resource:
+  id: sample
+  name: Test resource
+workflows:
+  main:
+    jobs:
+      public:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: 'true'
+        visibility: public
+        depends:
+        - private
+      private:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: 'true'
+        visibility: private

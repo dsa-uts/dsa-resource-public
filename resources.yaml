@@ -1,0 +1,20 @@
+resources:
+- id: ex1
+  path: ex1/resource.yaml
+sandbox-images:
+  default:
+    build:
+      context: sandbox
+      dockerfile: sandbox/Dockerfile
+      image: ghcr.io/dsa-uts/dsa-resource-public-sandbox
+      platforms:
+      - linux/amd64
+    lock: null
+  runner:
+    build:
+      context: sandbox-runner
+      dockerfile: sandbox-runner/Dockerfile
+      image: ghcr.io/dsa-uts/dsa-resource-public-sandbox
+      platforms:
+      - linux/amd64
+    lock: null

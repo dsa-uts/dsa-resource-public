@@ -1,0 +1,17 @@
+resources:
+- id: sample
+  path: sample/resource.yaml
+sandbox-images:
+  default:
+    build:
+      context: sandbox
+      dockerfile: sandbox/Dockerfile
+      image: ghcr.io/example/test-sandbox
+      platforms:
+      - linux/amd64
+    lock:
+      tag: test
+      digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      input-hash: sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+      source-ref: cccccccccccccccccccccccccccccccccccccccc
+      actions-run-id: '1'

@@ -1,0 +1,6 @@
+{
+  "yaml.schemas": {
+    "./schemas/resources.schema.json": "resources.yaml",
+    "./schemas/resource.schema.json": "**/resource.yaml"
+  }
+}

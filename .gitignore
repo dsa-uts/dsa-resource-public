@@ -1,0 +1,7 @@
+*.o
+target/
+__pycache__/
+.venv/
+ex1/example-submission/gcd_euclid
+ex1/example-submission/gcd_recursive
+ex1/example-submission/test_link

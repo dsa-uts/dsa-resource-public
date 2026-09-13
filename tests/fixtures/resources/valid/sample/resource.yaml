@@ -1,0 +1,54 @@
+resource:
+  id: sample
+  name: Test resource
+workflows:
+  main:
+    jobs:
+      build:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: touch program
+          compile: true
+        visibility: public
+        artifacts:
+          outputs:
+          - name: program
+            path: program
+      public:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: echo hello
+          expected:
+            stdout:
+              match: exact
+              path: expected.txt
+        - run: 'true'
+        visibility: public
+        depends:
+        - build
+        artifacts:
+          inputs:
+          - from-job: build
+            name: program
+            path: program
+      private:
+        sandbox-image: default
+        limits:
+          memory: 64MiB
+          step-timeout: 1s
+        steps:
+        - run: 'true'
+        depends:
+        - build
+        artifacts:
+          inputs:
+          - from-job: build
+            name: program
+            path: program
+    description-path: description.md

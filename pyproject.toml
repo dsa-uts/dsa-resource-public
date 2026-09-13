@@ -1,0 +1,8 @@
+[project]
+name = "dsa-resource-tools"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["PyYAML==6.0.3", "jsonschema==4.25.1"]
+
+[tool.uv]
+package = false
