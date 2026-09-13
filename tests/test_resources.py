@@ -58,6 +58,36 @@ class ContractTests(unittest.TestCase):
             for job in workflow['jobs'].values():
                 self.assertEqual(job['resolved-image']['image'], 'ghcr.io/example/test-sandbox')
 
+    def test_resource_version_is_required_positive_integer(self):
+        for value in [None, 0, -1, True, '1', 1.5, 1.0]:
+            with self.subTest(version=value):
+                self.edit(lambda d: d['resource'].update(version=value))
+                with self.assertRaises(Invalid): validate(self.root)
+        self.edit(lambda d: d['resource'].pop('version'))
+        with self.assertRaisesRegex(Invalid, 'required property'): validate(self.root)
+
+    def test_registered_versions_increase_and_allow_gaps(self):
+        history = [{'version': 1, 'commit': 'a'*40}, {'version': 3, 'commit': 'b'*40}]
+        self.edit(lambda d: d['resources'][0].update(versions=history), 'resources.yaml')
+        for version in [3, 5]:
+            self.edit(lambda d: d['resource'].update(version=version))
+            validate(self.root)
+        self.edit(lambda d: d['resource'].update(version=2))
+        with self.assertRaisesRegex(Invalid, 'must not decrease'): validate(self.root)
+        self.edit(lambda d: d['resource'].update(version=5))
+        for versions in [[3, 1], [1, 1], [1.0], [True], [0]]:
+            with self.subTest(versions=versions):
+                self.edit(lambda d: d['resources'][0].update(versions=[
+                    {'version': v, 'commit': 'a'*40} for v in versions]), 'resources.yaml')
+                with self.assertRaises(Invalid): validate(self.root)
+
+    def test_version_history_requires_full_commit_sha(self):
+        for commit in ['abc123', 'a'*39, 'a'*40 + '\n', 'g'*40, None]:
+            with self.subTest(commit=commit):
+                self.edit(lambda d: d['resources'][0].update(versions=[
+                    {'version': 1, 'commit': commit}]), 'resources.yaml')
+                with self.assertRaises(Invalid): validate(self.root)
+
     def test_compile_boolean_survives_expansion(self):
         for compile in [True, False]:
             with self.subTest(compile=compile):

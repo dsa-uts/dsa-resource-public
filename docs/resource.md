@@ -16,6 +16,7 @@ Resource YAML (`resource.yaml`) は Project の表示名、Workflow、Job、Step
 resource:
   id: example
   name: Example
+  version: 1
 workflows:
   judge:
     jobs:
@@ -36,6 +37,7 @@ workflows:
 ### 基本規則
 
 - map key は機械 ID、`name` は表示名。`schema-version` は持たない。
+- `resource.version` は必須の正の整数。公開する変更では登録済みの最大値より大きい値を指定する（欠番可）。同じ値のまま編集しても公開済みの版は変わらない。[Version登録](resource-contract.md#resource-version)を参照。
 - 相対 path の字句規則は[リポジトリ契約](resource-contract.md#path-の共通規則)に従い、下表の root 外を指してはいけない。
 
 | path | 基準となる root |
@@ -63,6 +65,7 @@ Normalization rules:
 | --- | --- | --- |
 | `resource.id` | yes | Resource の安定 ID。root manifest の `id` と一致する。 |
 | `resource.name` | yes | Project の表示名。 |
+| `resource.version` | yes | 明示的な公開版の番号。正の整数で、登録済みの最大値以上。 |
 | `workflows` | yes | Workflow ID を key にした、1個以上の Workflow の map。 |
 
 ## Sandbox Image

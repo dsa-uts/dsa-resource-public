@@ -12,11 +12,16 @@
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
         }
       },
       "required": [
         "id",
-        "name"
+        "name",
+        "version"
       ],
       "additionalProperties": false
     },

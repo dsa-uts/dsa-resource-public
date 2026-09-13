@@ -15,6 +15,28 @@
             "type": "string",
             "minLength": 1,
             "pattern": "^(?!/)(?!.*\\\\)(?!.*\\u0000)(?!.*:)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//).+(?<!/)$"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "commit": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$",
+                  "maxLength": 40
+                }
+              },
+              "required": [
+                "version",
+                "commit"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
